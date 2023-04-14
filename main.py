@@ -54,6 +54,9 @@ def run(offload: Optional[str] = None) -> float:
         data1 = None
         def offload_process1(data):
             nonlocal data1
+            url = f"{offload_url}/process1"  # URL of the process1 endpoint on the server
+            data_dict = {"data": data}  # create a dictionary containing the input data
+            response = requests.post(url, json=data_dict)  # send a POST request to the server with the input data
             # TODO: Send a POST request to the server with the input data
             data1 = response.json()
         thread = threading.Thread(target=offload_process1, args=(data,))
@@ -67,15 +70,74 @@ def run(offload: Optional[str] = None) -> float:
         #   Make sure to cite any sources you use to answer this question.
     elif offload == 'process2':
         # TODO: Implement this case
+        data2 = None
+        def offload_process2(data):
+            nonlocal data2
+            url = f"{offload_url}/process2"  # URL of the process1 endpoint on the server
+            data_dict = {"data": data}  # create a dictionary containing the input data
+            response = requests.post(url, json=data_dict)  # send a POST request to the server with the input data
+            # TODO: Send a POST request to the server with the input data
+            data2 = response.json()
+        thread = threading.Thread(target=offload_process2, args=(data,))
+        thread.start()
+        data1 = process1(data)
+        thread.join()
         pass
     elif offload == 'both':
         # TODO: Implement this case
+        data1 = None
+        data2 = None
+        def offload_both(data):
+            nonlocal data1
+            nonlocal data2
+            url = f"{offload_url}/process1"  # URL of the process1 endpoint on the server
+            data_dict = {"data": data}  # create a dictionary containing the input data
+            response = requests.post(url, json=data_dict)  # send a POST request to the server with the input data
+            # TODO: Send a POST request to the server with the input data
+            data1 = response.json()
+
+            url2 = f"{offload_url}/process2"  # URL of the process1 endpoint on the server
+            response = requests.post(url2, json=data_dict)  # send a POST request to the server with the input data
+            # TODO: Send a POST request to the server with the input data
+            data2 = response.json()
+
+        thread = threading.Thread(target=offload_both, args=(data,))
+        thread.start()
+        thread.join()
         pass
 
     ans = final_process(data1, data2)
     return ans 
 
+
 def main():
+    modes = [None, 'process1', 'process2', 'both']
+
+    results = []
+    for mode in modes:
+        execution_times = []
+        for i in range(5):
+            start_time = time.time()
+            run(mode)
+            execution_time = time.time() - start_time
+            execution_times.append(execution_time)
+            print(f"Mode {mode}, run {i}: {execution_time:.2f}s")
+        results.append({'Mode': mode, 'Execution Time (s)': execution_times})
+
+    df = pd.DataFrame(results)
+
+    fig = px.bar(df, x='Mode', y='Execution Time (s)', error_y='Execution Time (s)').update_layout(
+        title='Execution Time for Different Offloading Modes',
+        xaxis_title='Offloading Mode',
+        yaxis_title='Execution Time (s)',
+    )
+    fig.write_image('makespan.png')
+
+    print(df.describe())
+    print(f"Best offloading mode: {df.iloc[df['Execution Time (s)'].idxmin()]['Mode']}")
+    print(f"Worst offloading mode: {df.iloc[df['Execution Time (s)'].idxmax()]['Mode']}")    
+
+
     # TODO: Run the program 5 times for each offloading mode, and record the total execution time
     #   Compute the mean and standard deviation of the execution times
     #   Hint: store the results in a pandas DataFrame, use previous labs as a reference
